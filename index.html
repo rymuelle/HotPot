@@ -67,6 +67,8 @@
                                     <th class="p-4 sort-header hover:text-orange-500" onclick="setSort('popular')">Joint Probability <span id="sort-popular"></span></th>
                                     <th class="p-4 sort-header hover:text-orange-500" onclick="setSort('affinity')">Affinity <span id="sort-affinity"></span></th>
                                     <th class="p-4 sort-header hover:text-orange-500" onclick="setSort('hybrid')">Hybrid <span id="sort-hybrid"></span></th>
+                                    <th class="p-4 sort-header hover:text-orange-500" onclick="setSort('phi')">Phi <span id="sort-phi"></span></th>
+
                                 </tr>
                             </thead>
                             <tbody id="recommendationTable" class="divide-y text-slate-700 font-medium"></tbody>
@@ -84,7 +86,7 @@
         let pokeData = { pokemon: {}, total_usage: {} };
         let selectedPokemon = [];
         let recommendations = [];
-        let currentSort = { column: 'hybrid', direction: 'desc' };
+        let currentSort = { column: 'phi', direction: 'desc' };
         let isSearchInitialized = false;
 
         function loadData(fileName) {
@@ -149,9 +151,29 @@
                 const teammates = pokeData.pokemon[member]?.teammates || {};
                 for (let [candidate, count] of Object.entries(teammates)) {
                     if (selectedPokemon.includes(candidate)) continue;
-                    if (!scoresMap[candidate]) scoresMap[candidate] = { name: candidate, popular: 0.5, affinity: 0, hybrid: 0 };
+                    if (!scoresMap[candidate]) scoresMap[candidate] = { name: candidate, popular: 0.5, affinity: 0, hybrid: 0, phi: 0 };
                     const usage = pokeData.total_usage[candidate] || 1;
-                    scoresMap[candidate].affinity += (count - count ** 0.5 * 0.1) / (usage);
+
+                    // Calculate phi
+                    let phi; 
+
+                    let a = count;
+                    let b = usage - count;
+                    let c = member_usage - count;
+                    let d = totalTeams - (a + b + c);
+
+                    let numerator = (a * d) - (b * c);
+                    let denominator = ((a + b) * (c + d) * (a + c) * (b + d))**.5;
+
+                    if (denominator !== 0) {
+                        phi = numerator / denominator; // 2. Assign the value (don't use 'let' here)
+                    } else {
+                        phi = 0;
+                    }
+                
+                    let affinity =  (count - count ** 0.5 * 0.1) / (usage);
+                    scoresMap[candidate].affinity += affinity
+                    scoresMap[candidate].phi += phi
                     scoresMap[candidate].popular *= count / (member_usage) * 10;
                     scoresMap[candidate].hybrid += count / ((usage * member_usage) ** .5);
                 }
@@ -211,7 +233,7 @@
         function renderTable() {
             const tableBody = document.getElementById('recommendationTable');
             const emptyState = document.getElementById('emptyState');
-            ['name', 'popular', 'affinity', 'hybrid'].forEach(id => {
+            ['name', 'popular', 'affinity', 'hybrid', 'phi'].forEach(id => {
                 document.getElementById(`sort-${id}`).innerHTML = currentSort.column === id ? (currentSort.direction === 'asc' ? '▴' : '▾') : '';
             });
 
@@ -229,6 +251,7 @@
                     <td class="p-4 font-mono text-blue-500">${item.popular.toLocaleString(undefined, {maximumFractionDigits: 1})}</td>
                     <td class="p-4 font-mono text-purple-500">${item.affinity.toFixed(2)}</td>
                     <td class="p-4 font-mono text-orange-600 font-bold">${item.hybrid.toFixed(2)}</td>
+                    <td class="p-4 font-mono text-red-600 font-bold">${item.phi.toFixed(2)}</td>
                 </tr>`).join('');
         }
     </script>
