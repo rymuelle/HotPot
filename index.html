@@ -3,90 +3,76 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Poke-Agency Team Builder</title>
+    <title>Hot Pot | Poké-Agency</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
-        .card { background: white; border-radius: 8px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); }
+        .card { border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); }
         .sort-header { cursor: pointer; user-select: none; transition: background 0.2s; }
-        .sort-header:hover { background-color: #f3f4f6; }
         th { position: sticky; top: 0; background: white; z-index: 10; }
-        .progress-bar { transition: width 0.5s ease-in-out; }
+        .progress-bar { transition: width 0.5s ease-in-out, background-color 0.5s ease; }
     </style>
 </head>
-<body class="bg-gray-100 min-h-screen p-4 md:p-8">
+<body class="bg-gray-50 min-h-screen p-4 md:p-8 font-sans">
 
     <div class="max-w-6xl mx-auto">
-        <header class="mb-8 text-center">
-            <h1 class="text-4xl font-bold text-slate-800">Pokémon </h1>
-            <p class="text-slate-600">Find fun combos and good fits!</p>
+        <header class="mb-8 flex items-center justify-between bg-white p-6 rounded-xl shadow-sm border border-gray-100">
+            <div class="flex items-center gap-4">
+                <div class="bg-orange-100 p-3 rounded-full text-3xl">🌶️</div>
+                <div>
+                    <h1 class="text-3xl font-black text-slate-900 uppercase tracking-tight">Hot Pot</h1>
+                    <p class="text-slate-500 font-medium">Cooking up Pokémon teams.</p>
+                </div>
+            </div>
+            <select id="fileSelector" class="p-2 border rounded-lg bg-gray-50 font-semibold text-slate-700 outline-none focus:ring-2 focus:ring-orange-400">
+                <option value="processed_data/2026-03-gen9championsvgc2026regma-0.json">Reg G (Ladder)</option>  
+                <option value="processed_data/2026-03-gen9championsvgc2026regmabo3-0.json">Reg G (Bo3)</option>
+            </select>
         </header>
 
         <div class="grid grid-cols-1 lg:grid-cols-4 gap-8">
             
             <div class="lg:col-span-1 flex flex-col gap-6">
-                <div class="card p-6">
-                    <h2 class="text-xl font-bold mb-4 border-b pb-2">Your Team</h2>
-                    <div class="mb-4">
-                        <label class="block text-sm font-semibold text-gray-600 mb-1">Select Format/Data:</label>
-                        <select id="fileSelector" class="w-full p-2 border rounded bg-white shadow-sm focus:ring-2 focus:ring-blue-400 outline-none">
-                            <option value="processed_data/2026-03-gen9championsvgc2026regma-0.json">Reg G (Blind)</option>  
-                            <option value="processed_data/2026-03-gen9championsvgc2026regmabo3-0.json">Reg G (Bo3)</option>
-                        </select>
-                    </div>
-
-                    <input type="text" id="pokeSearch" placeholder="Search Pokémon..." class="w-full p-2 border rounded mb-4">
-                    <div id="selectedList" class="space-y-2 mb-4"></div>
-                    <div id="searchSuggestions" class="max-h-60 overflow-y-auto border rounded hidden bg-white"></div>
+                <div class="card p-6 bg-white">
+                    <h2 class="text-sm font-black text-slate-400 uppercase mb-4 tracking-widest">Ingredients</h2>
+                    <input type="text" id="pokeSearch" placeholder="Add Pokémon..." class="w-full p-3 border-2 border-gray-100 rounded-xl mb-4 focus:border-orange-400 outline-none transition-all">
+                    <div id="selectedList" class="space-y-2 mb-2"></div>
+                    <div id="searchSuggestions" class="max-h-60 overflow-y-auto border rounded-xl hidden bg-white shadow-xl"></div>
                 </div>
 
-                <div id="teamStatsCard" class="card p-6 bg-slate-800 text-white hidden">
-                    <h2 class="text-lg font-bold mb-2">Team Profile</h2>
+                <div id="teamStatsCard" class="card p-6 transition-all duration-700 bg-slate-100">
+                    <h2 id="cardTitle" class="text-xs font-black uppercase mb-4 tracking-widest opacity-70">Team Heat Profile</h2>
                     
-                    <div class="mb-4">
-                        <div class="flex justify-between text-xs mb-1 uppercase tracking-wider font-semibold">
-                            <span class="text-orange-400">Spicy</span>
-                            <span class="text-blue-300">Chalky</span>
+                    <div class="space-y-4">
+                        <div>
+                            <div id="vibeCheck" class="font-black italic text-2xl flex items-center gap-2 text-slate-400">
+                                Empty Pot
+                            </div>
+                            <div id="chalkScore" class="text-sm font-bold opacity-60">Avg. Usage: 0%</div>
                         </div>
-                        <div class="w-full bg-slate-700 rounded-full h-3">
-                            <div id="chalkBar" class="progress-bar bg-blue-500 h-3 rounded-full" style="width: 0%"></div>
-                        </div>
-                    </div>
 
-                    <div class="space-y-2">
-                        <div class="flex justify-between items-center">
-                            <span class="text-gray-400 text-sm">Chalk Score:</span>
-                            <span id="chalkScore" class="font-mono font-bold text-blue-300">0%</span>
-                        </div>
-                        <div class="flex justify-between items-center">
-                            <span class="text-gray-400 text-sm">Vibe:</span>
-                            <span id="vibeCheck" class="font-bold italic">Clear</span>
+                        <div class="w-full bg-black/10 rounded-full h-2">
+                            <div id="chalkBar" class="progress-bar h-2 rounded-full bg-slate-400" style="width: 0%"></div>
                         </div>
                     </div>
                 </div>
             </div>
 
             <div class="lg:col-span-3">
-                <div class="card overflow-hidden">
-                    <div class="p-4 border-b bg-white">
-                        <h2 class="text-xl font-bold text-slate-800">Partner Recommendations</h2>
-                        <p class="text-xs text-gray-500">Click headers to sort. <strong>Hybrid</strong> balances popularity with niche affinity.</p>
-                    </div>
-                    
+                <div class="card overflow-hidden bg-white">
                     <div class="overflow-x-auto max-h-[700px]">
                         <table class="w-full text-left border-collapse">
                             <thead>
-                                <tr class="border-b text-sm text-gray-600 uppercase tracking-wider">
-                                    <th class="p-4 sort-header" onclick="setSort('name')">Pokémon <span id="sort-name"></span></th>
-                                    <th class="p-4 sort-header" onclick="setSort('popular')">Popularity <span id="sort-popular"></span></th>
-                                    <th class="p-4 sort-header" onclick="setSort('affinity')">Affinity <span id="sort-affinity"></span></th>
-                                    <th class="p-4 sort-header" onclick="setSort('hybrid')">Hybrid <span id="sort-hybrid"></span></th>
+                                <tr class="border-b text-[10px] text-slate-400 uppercase font-black tracking-widest">
+                                    <th class="p-4 sort-header hover:text-orange-500" onclick="setSort('name')">Pokémon <span id="sort-name"></span></th>
+                                    <th class="p-4 sort-header hover:text-orange-500" onclick="setSort('popular')">Joint Probability <span id="sort-popular"></span></th>
+                                    <th class="p-4 sort-header hover:text-orange-500" onclick="setSort('affinity')">Affinity <span id="sort-affinity"></span></th>
+                                    <th class="p-4 sort-header hover:text-orange-500" onclick="setSort('hybrid')">Hybrid <span id="sort-hybrid"></span></th>
                                 </tr>
                             </thead>
-                            <tbody id="recommendationTable" class="divide-y text-slate-700 font-medium">
-                                </tbody>
+                            <tbody id="recommendationTable" class="divide-y text-slate-700 font-medium"></tbody>
                         </table>
-                        <div id="emptyState" class="p-12 text-center text-gray-400">
-                            Add Pokémon to your core to see suggestions
+                        <div id="emptyState" class="p-20 text-center">
+                            <div class="text-slate-400 font-bold uppercase tracking-widest text-xs">Waiting for ingredients...</div>
                         </div>
                     </div>
                 </div>
@@ -101,34 +87,25 @@
         let currentSort = { column: 'hybrid', direction: 'desc' };
         let isSearchInitialized = false;
 
-        const fileSelector = document.getElementById('fileSelector');
-
         function loadData(fileName) {
-            fetch(fileName)
-                .then(res => res.json())
-                .then(data => {
-                    pokeData = data;
-                    if (!isSearchInitialized) { setupSearch(); isSearchInitialized = true; }
-                    if (selectedPokemon.length > 0) calculateRecommendations();
-                })
-                .catch(err => console.error("Load error:", err));
+            fetch(fileName).then(res => res.json()).then(data => {
+                pokeData = data;
+                if (!isSearchInitialized) { setupSearch(); isSearchInitialized = true; }
+                if (selectedPokemon.length > 0) calculateRecommendations();
+            });
         }
-
-        fileSelector.addEventListener('change', (e) => loadData(e.target.value));
-        loadData(fileSelector.value);
+        document.getElementById('fileSelector').addEventListener('change', (e) => loadData(e.target.value));
+        loadData(document.getElementById('fileSelector').value);
 
         function setupSearch() {
             const input = document.getElementById('pokeSearch');
             const suggestions = document.getElementById('searchSuggestions');
-
             input.addEventListener('input', (e) => {
                 const val = e.target.value.trim().toLowerCase();
                 if (val.length < 2) { suggestions.classList.add('hidden'); return; }
-                const matches = Object.keys(pokeData.pokemon).filter(name => name.toLowerCase().includes(val)).slice(0, 10);
-                if (matches.length > 0) {
-                    suggestions.innerHTML = matches.map(m => `<div class="p-2 hover:bg-blue-50 cursor-pointer border-b" onclick="addPokemon('${m}')">${m}</div>`).join('');
-                    suggestions.classList.remove('hidden');
-                } else { suggestions.classList.add('hidden'); }
+                const matches = Object.keys(pokeData.pokemon).filter(n => n.toLowerCase().includes(val)).slice(0, 8);
+                suggestions.innerHTML = matches.map(m => `<div class="p-3 hover:bg-orange-50 cursor-pointer font-bold border-b last:border-0" onclick="addPokemon('${m}')">${m}</div>`).join('');
+                suggestions.classList.toggle('hidden', matches.length === 0);
             });
         }
 
@@ -146,154 +123,113 @@
         }
 
         function updateUI() {
-            const list = document.getElementById('selectedList');
-            const statsCard = document.getElementById('teamStatsCard');
-            
-            if (selectedPokemon.length > 0) {
-                statsCard.classList.remove('hidden');
-            } else {
-                statsCard.classList.add('hidden');
-            }
-
-            list.innerHTML = selectedPokemon.map(p => `
-                <div class="flex justify-between items-center bg-blue-100 border border-blue-200 p-2 rounded">
-                    <span class="font-bold text-blue-800">${p}</span>
-                    <button onclick="removePokemon('${p}')" class="text-red-500 hover:text-red-700 font-bold px-2">×</button>
-                </div>
-            `).join('');
+            document.getElementById('selectedList').innerHTML = selectedPokemon.map(p => `
+                <div class="flex justify-between items-center bg-slate-50 p-3 rounded-xl border border-slate-100 font-bold text-slate-700">
+                    <span>${p}</span>
+                    <button onclick="removePokemon('${p}')" class="text-slate-300 hover:text-red-500">✕</button>
+                </div>`).join('');
             calculateRecommendations();
         }
 
         function calculateRecommendations() {
             if (selectedPokemon.length === 0) {
-                recommendations = [];
-                renderTable();
+                resetStats();
                 return;
             }
 
             let scoresMap = {};
             let total_entries = 0;
-            for (let key in pokeData.total_usage) {
-                total_entries += pokeData.total_usage[key];
-            }
-            // Each team has 6 pokemon, so total entries / 6 = total teams
+            for (let key in pokeData.total_usage) total_entries += pokeData.total_usage[key];
             const totalTeams = total_entries / 6;
-
             let chalkSum = 0;
 
             selectedPokemon.forEach(member => {
                 const member_usage = pokeData.total_usage[member] || 0;
                 chalkSum += (member_usage / totalTeams) * 100;
-
                 const teammates = pokeData.pokemon[member]?.teammates || {};
-                
                 for (let [candidate, count] of Object.entries(teammates)) {
                     if (selectedPokemon.includes(candidate)) continue;
                     if (!scoresMap[candidate]) scoresMap[candidate] = { name: candidate, popular: 0.5, affinity: 0, hybrid: 0 };
-
                     const usage = pokeData.total_usage[candidate] || 1;
-                    
                     scoresMap[candidate].affinity += (count - count ** 0.5 * 0.1) / (usage);
                     scoresMap[candidate].popular *= count / (member_usage) * 10;
                     scoresMap[candidate].hybrid += count / ((usage * member_usage) ** .5);
                 }
             });
 
-            // Update Chalk Stats UI
             const avgChalk = chalkSum / selectedPokemon.length;
-            document.getElementById('chalkScore').innerText = `${avgChalk.toFixed(1)}%`;
-            document.getElementById('chalkBar').style.width = `${Math.min(avgChalk * 2, 100)}%`; // Scaled for visibility
-            
-            // Inside calculateRecommendations()...
-
-            let vibe = "Certified Scovillain";
-            let bgClass = "bg-black";
-            let textClass = "text-red-500";
-
-            if (avgChalk > 30) {
-                vibe = "Spicy as chalk";
-                bgClass = "bg-slate-200";
-                textClass = "text-slate-500";
-            } else if (avgChalk > 25) {
-                vibe = "Poblano";
-                bgClass = "bg-green-100";
-                textClass = "text-green-700";
-            } else if (avgChalk > 20) {
-                vibe = "Jalapeño";
-                bgClass = "bg-green-600";
-                textClass = "text-yellow-200";
-            } else if (avgChalk > 15) {
-                vibe = "Serrano";
-                bgClass = "bg-orange-500";
-                textClass = "text-white";
-            } else if (avgChalk > 10) {
-                vibe = "Habanero";
-                bgClass = "bg-red-600";
-                textClass = "text-yellow-400";
-            } else if (avgChalk > 5) {
-                vibe = "Carolina Reaper";
-                bgClass = "bg-red-900";
-                textClass = "text-orange-500";
-            }
-
-            // Apply the styles
-            const card = document.getElementById('teamStatsCard');
-            card.className = `card p-6 transition-all duration-700 ${bgClass}`;
-            document.getElementById('vibeCheck').className = `font-extrabold italic text-xl flex items-center gap-2 ${textClass}`;  
-            
-            document.getElementById('vibeCheck').innerText = vibe;
+            updateHeatUI(avgChalk);
 
             recommendations = Object.values(scoresMap).map(item => {
                 let pop = (item.popular * 2 * 100) / (10 ** selectedPokemon.length);
                 return { ...item, popular: pop };
             });
+            renderTable();
+        }
 
+        function updateHeatUI(avgChalk) {
+            let vibe = "Certified Scovillain";
+            let bgClass = "bg-black";
+            let textClass = "text-red-500";
+            let barClass = "bg-red-500";
+
+            if (avgChalk > 30) { vibe = "Spicy as Sinistcha"; bgClass = "bg-slate-200"; textClass = "text-slate-500"; barClass="bg-slate-400";}
+            else if (avgChalk > 25) { vibe = "Poblano"; bgClass = "bg-green-100"; textClass = "text-green-700"; barClass="bg-green-500";}
+            else if (avgChalk > 20) { vibe = "Jalapeño"; bgClass = "bg-green-600"; textClass = "text-yellow-200"; barClass="bg-yellow-400";}
+            else if (avgChalk > 15) { vibe = "Serrano"; bgClass = "bg-orange-500"; textClass = "text-white"; barClass="bg-orange-200";}
+            else if (avgChalk > 10) { vibe = "Habanero"; bgClass = "bg-red-600"; textClass = "text-yellow-400"; barClass="bg-yellow-200";}
+            else if (avgChalk > 5) { vibe = "Carolina Reaper"; bgClass = "bg-red-900"; textClass = "text-orange-500"; barClass="bg-orange-600";}
+
+            const card = document.getElementById('teamStatsCard');
+            card.className = `card p-6 transition-all duration-700 ${bgClass}`;
+            document.getElementById('vibeCheck').className = `font-black italic text-2xl flex items-center gap-2 ${textClass}`;
+            document.getElementById('vibeCheck').innerText = vibe;
+            document.getElementById('chalkScore').innerText = `Avg. Usage: ${avgChalk.toFixed(1)}%`;
+            document.getElementById('chalkScore').className = `text-sm font-bold ${textClass} opacity-80`;
+            document.getElementById('cardTitle').className = `text-[10px] font-black uppercase mb-4 tracking-widest ${textClass} opacity-60`;
+            
+            const bar = document.getElementById('chalkBar');
+            bar.className = `progress-bar h-2 rounded-full ${barClass}`;
+            bar.style.width = `${Math.min(avgChalk * 2.5, 100)}%`;
+        }
+
+        function resetStats() {
+            recommendations = [];
+            document.getElementById('teamStatsCard').className = "card p-6 transition-all duration-700 bg-slate-100";
+            document.getElementById('vibeCheck').innerText = "Empty Pot";
+            document.getElementById('vibeCheck').className = "font-black italic text-2xl text-slate-300";
+            document.getElementById('chalkBar').style.width = "0%";
             renderTable();
         }
 
         function setSort(col) {
-            if (currentSort.column === col) {
-                currentSort.direction = currentSort.direction === 'asc' ? 'desc' : 'asc';
-            } else {
-                currentSort.column = col;
-                currentSort.direction = 'desc';
-            }
+            if (currentSort.column === col) currentSort.direction = currentSort.direction === 'asc' ? 'desc' : 'asc';
+            else { currentSort.column = col; currentSort.direction = 'desc'; }
             renderTable();
         }
 
         function renderTable() {
             const tableBody = document.getElementById('recommendationTable');
             const emptyState = document.getElementById('emptyState');
-            
             ['name', 'popular', 'affinity', 'hybrid'].forEach(id => {
-                const el = document.getElementById(`sort-${id}`);
-                if(el) el.innerHTML = currentSort.column === id ? (currentSort.direction === 'asc' ? '▴' : '▾') : '';
+                document.getElementById(`sort-${id}`).innerHTML = currentSort.column === id ? (currentSort.direction === 'asc' ? '▴' : '▾') : '';
             });
 
-            if (recommendations.length === 0) {
-                tableBody.innerHTML = '';
-                emptyState.classList.remove('hidden');
-                return;
-            }
+            if (recommendations.length === 0) { tableBody.innerHTML = ''; emptyState.classList.remove('hidden'); return; }
             emptyState.classList.add('hidden');
 
             const sorted = [...recommendations].sort((a, b) => {
-                let valA = a[currentSort.column];
-                let valB = b[currentSort.column];
-                if (typeof valA === 'string') {
-                    return currentSort.direction === 'asc' ? valA.localeCompare(valB) : valB.localeCompare(valA);
-                }
-                return currentSort.direction === 'asc' ? valA - valB : valB - valA;
+                let vA = a[currentSort.column], vB = b[currentSort.column];
+                return currentSort.direction === 'asc' ? (vA > vB ? 1 : -1) : (vA < vB ? 1 : -1);
             });
 
             tableBody.innerHTML = sorted.map(item => `
-                <tr class="hover:bg-gray-50 transition-colors border-b last:border-0">
+                <tr class="hover:bg-slate-50 transition-colors border-b last:border-0">
                     <td class="p-4 font-bold text-slate-800">${item.name}</td>
-                    <td class="p-4 font-mono text-blue-600">${item.popular.toLocaleString(undefined, {maximumFractionDigits: 1})}</td>
-                    <td class="p-4 font-mono text-purple-600">${item.affinity.toFixed(2)}</td>
-                    <td class="p-4 font-mono text-emerald-600">${item.hybrid.toFixed(2)}</td>
-                </tr>
-            `).join('');
+                    <td class="p-4 font-mono text-blue-500">${item.popular.toLocaleString(undefined, {maximumFractionDigits: 1})}</td>
+                    <td class="p-4 font-mono text-purple-500">${item.affinity.toFixed(2)}</td>
+                    <td class="p-4 font-mono text-orange-600 font-bold">${item.hybrid.toFixed(2)}</td>
+                </tr>`).join('');
         }
     </script>
 </body>
