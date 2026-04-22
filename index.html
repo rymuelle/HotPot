@@ -1,0 +1,153 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Poke-Agency Team Builder</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        .card { background: white; border-radius: 8px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); }
+    </style>
+</head>
+<body class="bg-gray-100 min-h-screen p-4 md:p-8">
+
+    <div class="max-w-6xl mx-auto">
+        <header class="mb-8 text-center">
+            <h1 class="text-4xl font-bold text-slate-800">Pokémon Team Synergy Lab</h1>
+            <p class="text-slate-600">Select your core to find the best teammates.</p>
+        </header>
+
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-8">
+            
+            <div class="md:col-span-1">
+                <div class="card p-6">
+                    <h2 class="text-xl font-bold mb-4">Your Team</h2>
+                    <input type="text" id="pokeSearch" placeholder="Search Pokémon..." class="w-full p-2 border rounded mb-4">
+                    <div id="selectedList" class="space-y-2 mb-4">
+                        </div>
+                    <div id="searchSuggestions" class="max-h-60 overflow-y-auto border rounded hidden bg-white">
+                        </div>
+                </div>
+            </div>
+
+            <div class="md:col-span-2 grid grid-cols-1 md:grid-cols-2 gap-4">
+                
+                <div class="card p-6">
+                    <h2 class="text-xl font-bold text-blue-600 mb-2">Popular Partners</h2>
+                    <p class="text-xs text-gray-500 mb-4">Based on raw appearance counts. Good for reliable staples.</p>
+                    <ul id="popularResults" class="divide-y"></ul>
+                </div>
+
+                <div class="card p-6">
+                    <h2 class="text-xl font-bold text-purple-600 mb-2">High Synergy</h2>
+                    <p class="text-xs text-gray-500 mb-4">Adjusted for usage. Finds niche fits that belong on this specific team.</p>
+                    <ul id="synergyResults" class="divide-y"></ul>
+                </div>
+
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let pokeData = {};
+        let selectedPokemon = [];
+
+        // Load Data
+        fetch('pokemon_data.json')
+            .then(res => res.json())
+            .then(data => {
+                pokeData = data;
+                setupSearch();
+            });
+
+        function setupSearch() {
+            const input = document.getElementById('pokeSearch');
+            const suggestions = document.getElementById('searchSuggestions');
+
+            input.addEventListener('input', (e) => {
+                const val = e.target.value.toLowerCase();
+                if (val.length < 2) { suggestions.classList.add('hidden'); return; }
+                
+                const matches = Object.keys(pokeData.pokemon)
+                    .filter(name => name.toLowerCase().includes(val))
+                    .slice(0, 10);
+
+                suggestions.innerHTML = matches.map(m => 
+                    `<div class="p-2 hover:bg-blue-50 cursor-pointer border-b" onclick="addPokemon('${m}')">${m}</div>`
+                ).join('');
+                suggestions.classList.remove('hidden');
+            });
+        }
+
+        function addPokemon(name) {
+            if (selectedPokemon.length >= 6 || selectedPokemon.includes(name)) return;
+            selectedPokemon.push(name);
+            document.getElementById('pokeSearch').value = '';
+            document.getElementById('searchSuggestions').classList.add('hidden');
+            updateUI();
+        }
+
+        function removePokemon(name) {
+            selectedPokemon = selectedPokemon.filter(p => p !== name);
+            updateUI();
+        }
+
+        function updateUI() {
+            // Update selected list
+            const list = document.getElementById('selectedList');
+            list.innerHTML = selectedPokemon.map(p => `
+                <div class="flex justify-between items-center bg-gray-200 p-2 rounded">
+                    <span>${p}</span>
+                    <button onclick="removePokemon('${p}')" class="text-red-500 font-bold">×</button>
+                </div>
+            `).join('');
+
+            calculateRecommendations();
+        }
+
+        function calculateRecommendations() {
+            if (selectedPokemon.length === 0) {
+                document.getElementById('popularResults').innerHTML = '';
+                document.getElementById('synergyResults').innerHTML = '';
+                return;
+            }
+
+            let popularScores = {};
+            let synergyScores = {};
+
+            selectedPokemon.forEach(member => {
+                const teammates = pokeData.pokemon[member]?.teammates || {};
+                
+                for (let [candidate, count] of Object.entries(teammates)) {
+                    if (selectedPokemon.includes(candidate)) continue;
+
+                    // Popularity Score: Simple addition of raw counts
+                    popularScores[candidate] = (popularScores[candidate] || 0) + count;
+
+                    // Synergy Score: Weighted by candidate's general usage
+                    const usage = pokeData.total_usage[candidate] || 1;
+                    const weight = count / usage;
+                    synergyScores[candidate] = (synergyScores[candidate] || 0) + weight;
+                }
+            });
+
+            renderList('popularResults', popularScores, false);
+            renderList('synergyResults', synergyScores, true);
+        }
+
+        function renderList(elementId, scores, isSynergy) {
+            const sorted = Object.entries(scores)
+                .sort((a, b) => b[1] - a[1])
+                .slice(0, 15);
+
+            const el = document.getElementById(elementId);
+            el.innerHTML = sorted.map(([name, score]) => `
+                <li class="py-2 flex justify-between">
+                    <span class="font-medium">${name}</span>
+                    <span class="text-gray-400 text-sm">${isSynergy ? score.toFixed(2) : Math.round(score).toLocaleString()}</span>
+                </li>
+            `).join('');
+        }
+    </script>
+</body>
+</html>
