@@ -10,21 +10,22 @@
         .sort-header { cursor: pointer; user-select: none; transition: background 0.2s; }
         .sort-header:hover { background-color: #f3f4f6; }
         th { position: sticky; top: 0; background: white; z-index: 10; }
+        .progress-bar { transition: width 0.5s ease-in-out; }
     </style>
 </head>
 <body class="bg-gray-100 min-h-screen p-4 md:p-8">
 
     <div class="max-w-6xl mx-auto">
         <header class="mb-8 text-center">
-            <h1 class="text-4xl font-bold text-slate-800">Pokémon Matcher</h1>
+            <h1 class="text-4xl font-bold text-slate-800">Pokémon </h1>
             <p class="text-slate-600">Find fun combos and good fits!</p>
         </header>
 
         <div class="grid grid-cols-1 lg:grid-cols-4 gap-8">
             
-            <div class="lg:col-span-1">
+            <div class="lg:col-span-1 flex flex-col gap-6">
                 <div class="card p-6">
-                    <h2 class="text-xl font-bold mb-4">Your Team</h2>
+                    <h2 class="text-xl font-bold mb-4 border-b pb-2">Your Team</h2>
                     <div class="mb-4">
                         <label class="block text-sm font-semibold text-gray-600 mb-1">Select Format/Data:</label>
                         <select id="fileSelector" class="w-full p-2 border rounded bg-white shadow-sm focus:ring-2 focus:ring-blue-400 outline-none">
@@ -37,30 +38,55 @@
                     <div id="selectedList" class="space-y-2 mb-4"></div>
                     <div id="searchSuggestions" class="max-h-60 overflow-y-auto border rounded hidden bg-white"></div>
                 </div>
+
+                <div id="teamStatsCard" class="card p-6 bg-slate-800 text-white hidden">
+                    <h2 class="text-lg font-bold mb-2">Team Profile</h2>
+                    
+                    <div class="mb-4">
+                        <div class="flex justify-between text-xs mb-1 uppercase tracking-wider font-semibold">
+                            <span class="text-orange-400">Spicy</span>
+                            <span class="text-blue-300">Chalky</span>
+                        </div>
+                        <div class="w-full bg-slate-700 rounded-full h-3">
+                            <div id="chalkBar" class="progress-bar bg-blue-500 h-3 rounded-full" style="width: 0%"></div>
+                        </div>
+                    </div>
+
+                    <div class="space-y-2">
+                        <div class="flex justify-between items-center">
+                            <span class="text-gray-400 text-sm">Chalk Score:</span>
+                            <span id="chalkScore" class="font-mono font-bold text-blue-300">0%</span>
+                        </div>
+                        <div class="flex justify-between items-center">
+                            <span class="text-gray-400 text-sm">Vibe:</span>
+                            <span id="vibeCheck" class="font-bold italic">Clear</span>
+                        </div>
+                    </div>
+                </div>
             </div>
 
             <div class="lg:col-span-3">
                 <div class="card overflow-hidden">
                     <div class="p-4 border-b bg-white">
                         <h2 class="text-xl font-bold text-slate-800">Partner Recommendations</h2>
-                        <p class="text-xs text-gray-500">Click headers to sort. "Popularity" recommends the most common picks. Affinity finds pokemon that usually match up with your picks.</p>
+                        <p class="text-xs text-gray-500">Click headers to sort. <strong>Hybrid</strong> balances popularity with niche affinity.</p>
                     </div>
                     
-                    <div class="overflow-x-auto max-h-[600px]">
+                    <div class="overflow-x-auto max-h-[700px]">
                         <table class="w-full text-left border-collapse">
                             <thead>
                                 <tr class="border-b text-sm text-gray-600 uppercase tracking-wider">
                                     <th class="p-4 sort-header" onclick="setSort('name')">Pokémon <span id="sort-name"></span></th>
-                                    <th class="p-4 sort-header" onclick="setSort('popular')">Popularity Score <span id="sort-popular"></span></th>
-                                    <th class="p-4 sort-header" onclick="setSort('affinity')">Affinity Score <span id="sort-affinity"></span></th>
-                                    <th class="p-4 sort-header" onclick="setSort('hybrid')">Hybrid Score <span id="sort-hybrid"></span></th>
+                                    <th class="p-4 sort-header" onclick="setSort('popular')">Popularity <span id="sort-popular"></span></th>
+                                    <th class="p-4 sort-header" onclick="setSort('affinity')">Affinity <span id="sort-affinity"></span></th>
+                                    <th class="p-4 sort-header" onclick="setSort('hybrid')">Hybrid <span id="sort-hybrid"></span></th>
                                 </tr>
                             </thead>
-                            <tbody id="recommendationTable" class="divide-y text-slate-700">
+                            <tbody id="recommendationTable" class="divide-y text-slate-700 font-medium">
                                 </tbody>
                         </table>
                         <div id="emptyState" class="p-12 text-center text-gray-400">
-                            Add Pokémon to your team to see recommendations
+                            Add Pokémon to your core to see suggestions
                         </div>
                     </div>
                 </div>
@@ -71,7 +97,7 @@
     <script>
         let pokeData = { pokemon: {}, total_usage: {} };
         let selectedPokemon = [];
-        let recommendations = []; // Store calculated results for sorting
+        let recommendations = [];
         let currentSort = { column: 'hybrid', direction: 'desc' };
         let isSearchInitialized = false;
 
@@ -121,6 +147,14 @@
 
         function updateUI() {
             const list = document.getElementById('selectedList');
+            const statsCard = document.getElementById('teamStatsCard');
+            
+            if (selectedPokemon.length > 0) {
+                statsCard.classList.remove('hidden');
+            } else {
+                statsCard.classList.add('hidden');
+            }
+
             list.innerHTML = selectedPokemon.map(p => `
                 <div class="flex justify-between items-center bg-blue-100 border border-blue-200 p-2 rounded">
                     <span class="font-bold text-blue-800">${p}</span>
@@ -138,44 +172,51 @@
             }
 
             let scoresMap = {};
-            // Chalk measures how often people pick these pokemon
-            let chalk = 0;
             let total_entries = 0;
             for (let key in pokeData.total_usage) {
                 total_entries += pokeData.total_usage[key];
             }
+            // Each team has 6 pokemon, so total entries / 6 = total teams
+            const totalTeams = total_entries / 6;
+
+            let chalkSum = 0;
 
             selectedPokemon.forEach(member => {
+                const member_usage = pokeData.total_usage[member] || 0;
+                chalkSum += (member_usage / totalTeams) * 100;
+
                 const teammates = pokeData.pokemon[member]?.teammates || {};
-                const member_usage = pokeData.total_usage[member];
-                chalk += member_usage/total_entries;
+                
                 for (let [candidate, count] of Object.entries(teammates)) {
                     if (selectedPokemon.includes(candidate)) continue;
                     if (!scoresMap[candidate]) scoresMap[candidate] = { name: candidate, popular: 0.5, affinity: 0, hybrid: 0 };
 
                     const usage = pokeData.total_usage[candidate] || 1;
                     
-                    // affinity Logic
-                    const synWeight = (count - count ** 0.5 * 0.1) / (usage);
-                    scoresMap[candidate].affinity += synWeight;
-
-                    // Popularity Logic
+                    scoresMap[candidate].affinity += (count - count ** 0.5 * 0.1) / (usage);
                     scoresMap[candidate].popular *= count / (member_usage) * 10;
-
-                    // Hybrid
                     scoresMap[candidate].hybrid += count / ((usage * member_usage) ** .5);
                 }
             });
 
-            // Post-processing scores
+            // Update Chalk Stats UI
+            const avgChalk = chalkSum / selectedPokemon.length;
+            document.getElementById('chalkScore').innerText = `${avgChalk.toFixed(1)}%`;
+            document.getElementById('chalkBar').style.width = `${Math.min(avgChalk * 2, 100)}%`; // Scaled for visibility
+            
+            let vibe = "Certified Scovillain";
+            if (avgChalk > 30) vibe = "Spicy as chalk";
+            else if (avgChalk > 25) vibe = "Poblano";
+            else if (avgChalk > 20) vibe = "Jalapeño";
+            else if (avgChalk > 15) vibe = "Serrano";
+            else if (avgChalk > 10) vibe = "Habenero";
+            else if (avgChalk > 5) vibe = "Carolina Reaper";
+            
+            document.getElementById('vibeCheck').innerText = vibe;
+
             recommendations = Object.values(scoresMap).map(item => {
                 let pop = (item.popular * 2 * 100) / (10 ** selectedPokemon.length);
-                return {
-                    ...item,
-                    popular: pop,
-                    affinity: item.affinity,
-                    hybrid: item.hybrid,
-                };
+                return { ...item, popular: pop };
             });
 
             renderTable();
@@ -195,10 +236,9 @@
             const tableBody = document.getElementById('recommendationTable');
             const emptyState = document.getElementById('emptyState');
             
-            // Update Sort Icons
             ['name', 'popular', 'affinity', 'hybrid'].forEach(id => {
                 const el = document.getElementById(`sort-${id}`);
-                el.innerHTML = currentSort.column === id ? (currentSort.direction === 'asc' ? '▴' : '▾') : '';
+                if(el) el.innerHTML = currentSort.column === id ? (currentSort.direction === 'asc' ? '▴' : '▾') : '';
             });
 
             if (recommendations.length === 0) {
@@ -208,7 +248,6 @@
             }
             emptyState.classList.add('hidden');
 
-            // Sort data
             const sorted = [...recommendations].sort((a, b) => {
                 let valA = a[currentSort.column];
                 let valB = b[currentSort.column];
@@ -219,11 +258,11 @@
             });
 
             tableBody.innerHTML = sorted.map(item => `
-                <tr class="hover:bg-gray-50 transition-colors">
+                <tr class="hover:bg-gray-50 transition-colors border-b last:border-0">
                     <td class="p-4 font-bold text-slate-800">${item.name}</td>
-                    <td class="p-4 font-mono text-blue-600">${item.popular.toLocaleString(undefined, {maximumFractionDigits: 2})}</td>
+                    <td class="p-4 font-mono text-blue-600">${item.popular.toLocaleString(undefined, {maximumFractionDigits: 1})}</td>
                     <td class="p-4 font-mono text-purple-600">${item.affinity.toFixed(2)}</td>
-                    <td class="p-4 font-mono text-purple-600">${item.hybrid.toFixed(2)}</td>
+                    <td class="p-4 font-mono text-emerald-600">${item.hybrid.toFixed(2)}</td>
                 </tr>
             `).join('');
         }
