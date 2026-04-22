@@ -7,6 +7,9 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
         .card { background: white; border-radius: 8px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); }
+        .sort-header { cursor: pointer; user-select: none; transition: background 0.2s; }
+        .sort-header:hover { background-color: #f3f4f6; }
+        th { position: sticky; top: 0; background: white; z-index: 10; }
     </style>
 </head>
 <body class="bg-gray-100 min-h-screen p-4 md:p-8">
@@ -17,41 +20,49 @@
             <p class="text-slate-600">Select your core to find the best teammates.</p>
         </header>
 
-        <div class="grid grid-cols-1 md:grid-cols-3 gap-8">
+        <div class="grid grid-cols-1 lg:grid-cols-4 gap-8">
             
-            <div class="md:col-span-1">
+            <div class="lg:col-span-1">
                 <div class="card p-6">
                     <h2 class="text-xl font-bold mb-4">Your Team</h2>
                     <div class="mb-4">
                         <label class="block text-sm font-semibold text-gray-600 mb-1">Select Format/Data:</label>
                         <select id="fileSelector" class="w-full p-2 border rounded bg-white shadow-sm focus:ring-2 focus:ring-blue-400 outline-none">
-                            <option value="processed_data/2026-03-gen9championsvgc2026regmabo3-0.json">Reg G (Bo3, May 2024)</option>
-                            <option value="processed_data/2026-03-gen9championsvgc2026regma-0.json">Reg G (May 2024)</option>  
+                            <option value="processed_data/2026-03-gen9championsvgc2026regmabo3-0.json">Reg G (Bo3)</option>
+                            <option value="processed_data/2026-03-gen9championsvgc2026regma-0.json">Reg G (Ladder)</option>  
                         </select>
                     </div>
 
                     <input type="text" id="pokeSearch" placeholder="Search Pokémon..." class="w-full p-2 border rounded mb-4">
-                    <div id="selectedList" class="space-y-2 mb-4">
-                        </div>
-                    <div id="searchSuggestions" class="max-h-60 overflow-y-auto border rounded hidden bg-white">
-                        </div>
+                    <div id="selectedList" class="space-y-2 mb-4"></div>
+                    <div id="searchSuggestions" class="max-h-60 overflow-y-auto border rounded hidden bg-white"></div>
                 </div>
             </div>
 
-            <div class="md:col-span-2 grid grid-cols-1 md:grid-cols-2 gap-4">
-                
-                <div class="card p-6">
-                    <h2 class="text-xl font-bold text-blue-600 mb-2">Popular Partners</h2>
-                    <p class="text-xs text-gray-500 mb-4">Based on raw appearance counts. Good for reliable staples.</p>
-                    <ul id="popularResults" class="divide-y"></ul>
+            <div class="lg:col-span-3">
+                <div class="card overflow-hidden">
+                    <div class="p-4 border-b bg-white">
+                        <h2 class="text-xl font-bold text-slate-800">Partner Recommendations</h2>
+                        <p class="text-xs text-gray-500">Click headers to sort. Synergy finds niche fits; Popularity finds standard staples.</p>
+                    </div>
+                    
+                    <div class="overflow-x-auto max-h-[600px]">
+                        <table class="w-full text-left border-collapse">
+                            <thead>
+                                <tr class="border-b text-sm text-gray-600 uppercase tracking-wider">
+                                    <th class="p-4 sort-header" onclick="setSort('name')">Pokémon <span id="sort-name"></span></th>
+                                    <th class="p-4 sort-header" onclick="setSort('popular')">Popularity Score <span id="sort-popular"></span></th>
+                                    <th class="p-4 sort-header" onclick="setSort('synergy')">Synergy Score <span id="sort-synergy"></span></th>
+                                </tr>
+                            </thead>
+                            <tbody id="recommendationTable" class="divide-y text-slate-700">
+                                </tbody>
+                        </table>
+                        <div id="emptyState" class="p-12 text-center text-gray-400">
+                            Add Pokémon to your team to see recommendations
+                        </div>
+                    </div>
                 </div>
-
-                <div class="card p-6">
-                    <h2 class="text-xl font-bold text-purple-600 mb-2">High Synergy</h2>
-                    <p class="text-xs text-gray-500 mb-4">Adjusted for usage. Finds niche fits that belong on this specific team.</p>
-                    <ul id="synergyResults" class="divide-y"></ul>
-                </div>
-
             </div>
         </div>
     </div>
@@ -59,44 +70,24 @@
     <script>
         let pokeData = { pokemon: {}, total_usage: {} };
         let selectedPokemon = [];
-        let isSearchInitialized = false; // Track if we've attached listeners yet
+        let recommendations = []; // Store calculated results for sorting
+        let currentSort = { column: 'synergy', direction: 'desc' };
+        let isSearchInitialized = false;
 
         const fileSelector = document.getElementById('fileSelector');
 
         function loadData(fileName) {
-            console.log(`Loading data from: ${fileName}...`);
-            
             fetch(fileName)
-                .then(res => {
-                    if (!res.ok) throw new Error(`Could not find ${fileName}.`);
-                    return res.json();
-                })
+                .then(res => res.json())
                 .then(data => {
                     pokeData = data;
-                    console.log("Data Loaded Successfully!");
-
-                    // Initialize search listeners ONLY the first time we get data
-                    if (!isSearchInitialized) {
-                        setupSearch();
-                        isSearchInitialized = true;
-                    }
-                    
-                    // 2. Refresh results if a team is already selected
-                    if (selectedPokemon.length > 0) {
-                        calculateRecommendations();
-                    }
+                    if (!isSearchInitialized) { setupSearch(); isSearchInitialized = true; }
+                    if (selectedPokemon.length > 0) calculateRecommendations();
                 })
-                .catch(err => {
-                    alert(err.message);
-                });
+                .catch(err => console.error("Load error:", err));
         }
 
-        // Listener for dropdown changes
-        fileSelector.addEventListener('change', (e) => {
-            loadData(e.target.value);
-        });
-
-        // Initial trigger
+        fileSelector.addEventListener('change', (e) => loadData(e.target.value));
         loadData(fileSelector.value);
 
         function setupSearch() {
@@ -106,29 +97,11 @@
             input.addEventListener('input', (e) => {
                 const val = e.target.value.trim().toLowerCase();
                 if (val.length < 2) { suggestions.classList.add('hidden'); return; }
-                
-                const matches = Object.keys(pokeData.pokemon)
-                    .filter(name => name.toLowerCase().includes(val))
-                    .slice(0, 10);
-
+                const matches = Object.keys(pokeData.pokemon).filter(name => name.toLowerCase().includes(val)).slice(0, 10);
                 if (matches.length > 0) {
-                    suggestions.innerHTML = matches.map(m => 
-                        `<div class="p-2 hover:bg-blue-50 cursor-pointer border-b" onclick="addPokemon('${m}')">${m}</div>`
-                    ).join('');
+                    suggestions.innerHTML = matches.map(m => `<div class="p-2 hover:bg-blue-50 cursor-pointer border-b" onclick="addPokemon('${m}')">${m}</div>`).join('');
                     suggestions.classList.remove('hidden');
-                } else {
-                    suggestions.classList.add('hidden');
-                }
-            });
-
-            // Add "Enter" key support
-            input.addEventListener('keypress', (e) => {
-                if (e.key === 'Enter') {
-                    const val = input.value.trim();
-                    // Find the best case-insensitive match
-                    const match = Object.keys(pokeData.pokemon).find(p => p.toLowerCase() === val.toLowerCase());
-                    if (match) addPokemon(match);
-                }
+                } else { suggestions.classList.add('hidden'); }
             });
         }
 
@@ -148,76 +121,98 @@
         function updateUI() {
             const list = document.getElementById('selectedList');
             list.innerHTML = selectedPokemon.map(p => `
-                <div class="flex justify-between items-center bg-blue-100 border border-blue-200 p-2 rounded animate-in fade-in duration-300">
+                <div class="flex justify-between items-center bg-blue-100 border border-blue-200 p-2 rounded">
                     <span class="font-bold text-blue-800">${p}</span>
                     <button onclick="removePokemon('${p}')" class="text-red-500 hover:text-red-700 font-bold px-2">×</button>
                 </div>
             `).join('');
-
             calculateRecommendations();
         }
 
         function calculateRecommendations() {
-            const popEl = document.getElementById('popularResults');
-            const synEl = document.getElementById('synergyResults');
-
             if (selectedPokemon.length === 0) {
-                popEl.innerHTML = '';
-                synEl.innerHTML = '';
+                recommendations = [];
+                renderTable();
                 return;
             }
 
-            let popularScores = {};
-            let synergyScores = {};
+            let scoresMap = {};
+
             selectedPokemon.forEach(member => {
                 const teammates = pokeData.pokemon[member]?.teammates || {};
                 const member_usage = pokeData.total_usage[member];
+                
                 for (let [candidate, count] of Object.entries(teammates)) {
                     if (selectedPokemon.includes(candidate)) continue;
+                    if (!scoresMap[candidate]) scoresMap[candidate] = { name: candidate, popular: 0.5, synergy: 0 };
 
                     const usage = pokeData.total_usage[candidate] || 1;
-                    // Subtract by 50% of the square root to penalize very low counts (e.g. only 1 example)
-                    const weight = (count - count ** 0.5 * 0.1) / (usage);
-                    synergyScores[candidate] = (synergyScores[candidate] || 0) + weight;
+                    
+                    // Synergy Logic
+                    const synWeight = (count - count ** 0.5 * 0.1) / (usage);
+                    scoresMap[candidate].synergy += synWeight;
 
-                    // const popWeight = (count - count ** 0.5 * 0.5) / member_usage;
-                    popularScores[candidate] = (popularScores[candidate] || 0.5) * count / (member_usage) * 10 ;
-                    // popularScores[candidate] = (popularScores[candidate] || 0) + popWeight;
-
+                    // Popularity Logic
+                    scoresMap[candidate].popular *= count / (member_usage) * 10;
                 }
             });
 
-            for (const [key, value] of Object.entries(popularScores)) {
-                // For the 0.5 multiplied
-                popularScores[key] *= 2;
-                // Scale out of 100
-                popularScores[key] *= 100;
-                // Remove normalizing 10
-                popularScores[key] /= 10 ** selectedPokemon.length;
-            }
+            // Post-processing scores
+            recommendations = Object.values(scoresMap).map(item => {
+                let pop = (item.popular * 2 * 100) / (10 ** selectedPokemon.length);
+                return {
+                    ...item,
+                    popular: pop,
+                    synergy: item.synergy
+                };
+            });
 
-            renderList('popularResults', popularScores, false);
-            renderList('synergyResults', synergyScores, true);
+            renderTable();
         }
 
-        function renderList(elementId, scores, isSynergy) {
-            const sorted = Object.entries(scores)
-                .sort((a, b) => b[1] - a[1]);
-                // .slice(0, 15);
+        function setSort(col) {
+            if (currentSort.column === col) {
+                currentSort.direction = currentSort.direction === 'asc' ? 'desc' : 'asc';
+            } else {
+                currentSort.column = col;
+                currentSort.direction = 'desc';
+            }
+            renderTable();
+        }
 
-            const el = document.getElementById(elementId);
-            if (sorted.length === 0) {
-                el.innerHTML = '<li class="py-4 text-gray-400 text-center">No data found for this combo</li>';
+        function renderTable() {
+            const tableBody = document.getElementById('recommendationTable');
+            const emptyState = document.getElementById('emptyState');
+            
+            // Update Sort Icons
+            ['name', 'popular', 'synergy'].forEach(id => {
+                const el = document.getElementById(`sort-${id}`);
+                el.innerHTML = currentSort.column === id ? (currentSort.direction === 'asc' ? '▴' : '▾') : '';
+            });
+
+            if (recommendations.length === 0) {
+                tableBody.innerHTML = '';
+                emptyState.classList.remove('hidden');
                 return;
             }
+            emptyState.classList.add('hidden');
 
-            el.innerHTML = sorted.map(([name, score]) => `
-                <li class="py-2 flex justify-between items-center border-b last:border-0 border-gray-50">
-                    <span class="font-medium text-slate-700">${name}</span>
-                    <span class="bg-gray-100 text-gray-600 text-xs px-2 py-1 rounded-full font-mono">
-                        ${isSynergy ? score.toFixed(2) : (Math.round(score*1e6)/1e6).toLocaleString()}
-                    </span>
-                </li>
+            // Sort data
+            const sorted = [...recommendations].sort((a, b) => {
+                let valA = a[currentSort.column];
+                let valB = b[currentSort.column];
+                if (typeof valA === 'string') {
+                    return currentSort.direction === 'asc' ? valA.localeCompare(valB) : valB.localeCompare(valA);
+                }
+                return currentSort.direction === 'asc' ? valA - valB : valB - valA;
+            });
+
+            tableBody.innerHTML = sorted.map(item => `
+                <tr class="hover:bg-gray-50 transition-colors">
+                    <td class="p-4 font-bold text-slate-800">${item.name}</td>
+                    <td class="p-4 font-mono text-blue-600">${item.popular.toLocaleString(undefined, {maximumFractionDigits: 2})}</td>
+                    <td class="p-4 font-mono text-purple-600">${item.synergy.toFixed(2)}</td>
+                </tr>
             `).join('');
         }
     </script>
