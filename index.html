@@ -49,15 +49,23 @@
     </div>
 
     <script>
-        let pokeData = {};
+        let pokeData = { pokemon: {}, total_usage: {} };
         let selectedPokemon = [];
 
-        // Load Data
+        // 1. Load Data with Error Catching
         fetch('pokemon_data.json')
-            .then(res => res.json())
+            .then(res => {
+                if (!res.ok) throw new Error("Could not find pokemon_data.json. Make sure it is in the same folder!");
+                return res.json();
+            })
             .then(data => {
                 pokeData = data;
+                console.log("Data Loaded Successfully!", Object.keys(pokeData.pokemon).length, "pokemon found.");
                 setupSearch();
+            })
+            .catch(err => {
+                alert(err.message);
+                console.error(err);
             });
 
         function setupSearch() {
@@ -65,17 +73,31 @@
             const suggestions = document.getElementById('searchSuggestions');
 
             input.addEventListener('input', (e) => {
-                const val = e.target.value.toLowerCase();
+                const val = e.target.value.trim().toLowerCase();
                 if (val.length < 2) { suggestions.classList.add('hidden'); return; }
                 
                 const matches = Object.keys(pokeData.pokemon)
                     .filter(name => name.toLowerCase().includes(val))
                     .slice(0, 10);
 
-                suggestions.innerHTML = matches.map(m => 
-                    `<div class="p-2 hover:bg-blue-50 cursor-pointer border-b" onclick="addPokemon('${m}')">${m}</div>`
-                ).join('');
-                suggestions.classList.remove('hidden');
+                if (matches.length > 0) {
+                    suggestions.innerHTML = matches.map(m => 
+                        `<div class="p-2 hover:bg-blue-50 cursor-pointer border-b" onclick="addPokemon('${m}')">${m}</div>`
+                    ).join('');
+                    suggestions.classList.remove('hidden');
+                } else {
+                    suggestions.classList.add('hidden');
+                }
+            });
+
+            // 2. Add "Enter" key support
+            input.addEventListener('keypress', (e) => {
+                if (e.key === 'Enter') {
+                    const val = input.value.trim();
+                    // Find the best case-insensitive match
+                    const match = Object.keys(pokeData.pokemon).find(p => p.toLowerCase() === val.toLowerCase());
+                    if (match) addPokemon(match);
+                }
             });
         }
 
@@ -93,12 +115,11 @@
         }
 
         function updateUI() {
-            // Update selected list
             const list = document.getElementById('selectedList');
             list.innerHTML = selectedPokemon.map(p => `
-                <div class="flex justify-between items-center bg-gray-200 p-2 rounded">
-                    <span>${p}</span>
-                    <button onclick="removePokemon('${p}')" class="text-red-500 font-bold">×</button>
+                <div class="flex justify-between items-center bg-blue-100 border border-blue-200 p-2 rounded animate-in fade-in duration-300">
+                    <span class="font-bold text-blue-800">${p}</span>
+                    <button onclick="removePokemon('${p}')" class="text-red-500 hover:text-red-700 font-bold px-2">×</button>
                 </div>
             `).join('');
 
@@ -106,9 +127,12 @@
         }
 
         function calculateRecommendations() {
+            const popEl = document.getElementById('popularResults');
+            const synEl = document.getElementById('synergyResults');
+
             if (selectedPokemon.length === 0) {
-                document.getElementById('popularResults').innerHTML = '';
-                document.getElementById('synergyResults').innerHTML = '';
+                popEl.innerHTML = '';
+                synEl.innerHTML = '';
                 return;
             }
 
@@ -121,10 +145,8 @@
                 for (let [candidate, count] of Object.entries(teammates)) {
                     if (selectedPokemon.includes(candidate)) continue;
 
-                    // Popularity Score: Simple addition of raw counts
                     popularScores[candidate] = (popularScores[candidate] || 0) + count;
 
-                    // Synergy Score: Weighted by candidate's general usage
                     const usage = pokeData.total_usage[candidate] || 1;
                     const weight = count / usage;
                     synergyScores[candidate] = (synergyScores[candidate] || 0) + weight;
@@ -141,10 +163,17 @@
                 .slice(0, 15);
 
             const el = document.getElementById(elementId);
+            if (sorted.length === 0) {
+                el.innerHTML = '<li class="py-4 text-gray-400 text-center">No data found for this combo</li>';
+                return;
+            }
+
             el.innerHTML = sorted.map(([name, score]) => `
-                <li class="py-2 flex justify-between">
-                    <span class="font-medium">${name}</span>
-                    <span class="text-gray-400 text-sm">${isSynergy ? score.toFixed(2) : Math.round(score).toLocaleString()}</span>
+                <li class="py-2 flex justify-between items-center border-b last:border-0 border-gray-50">
+                    <span class="font-medium text-slate-700">${name}</span>
+                    <span class="bg-gray-100 text-gray-600 text-xs px-2 py-1 rounded-full font-mono">
+                        ${isSynergy ? score.toFixed(2) : Math.round(score).toLocaleString()}
+                    </span>
                 </li>
             `).join('');
         }
