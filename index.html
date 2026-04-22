@@ -169,20 +169,28 @@
 
             let popularScores = {};
             let synergyScores = {};
-
             selectedPokemon.forEach(member => {
                 const teammates = pokeData.pokemon[member]?.teammates || {};
-                
+                const member_usage = pokeData.total_usage[member];
                 for (let [candidate, count] of Object.entries(teammates)) {
                     if (selectedPokemon.includes(candidate)) continue;
 
-                    popularScores[candidate] = (popularScores[candidate] || 0) + count;
+                    popularScores[candidate] = (popularScores[candidate] || 0.5) * count / member_usage * 10 ;
 
                     const usage = pokeData.total_usage[candidate] || 1;
-                    const weight = count / usage;
-                    synergyScores[candidate] = (synergyScores[candidate] || 0) + weight;
+                    // Subtract by 50% of the square root to penalize very low counts (e.g. only 1 example)
+                    const weight = (count - count ** 0.5 * 0.5)/ usage;
                 }
             });
+
+            for (const [key, value] of Object.entries(popularScores)) {
+                // For the 0.5 multiplied
+                popularScores[key] *= 2;
+                // Scale out of 100
+                popularScores[key] *= 100;
+                // Remove normalizing 10
+                popularScores[key] /= 10 ** selectedPokemon.length;
+            }
 
             renderList('popularResults', popularScores, false);
             renderList('synergyResults', synergyScores, true);
@@ -190,8 +198,8 @@
 
         function renderList(elementId, scores, isSynergy) {
             const sorted = Object.entries(scores)
-                .sort((a, b) => b[1] - a[1])
-                .slice(0, 15);
+                .sort((a, b) => b[1] - a[1]);
+                // .slice(0, 15);
 
             const el = document.getElementById(elementId);
             if (sorted.length === 0) {
@@ -203,7 +211,7 @@
                 <li class="py-2 flex justify-between items-center border-b last:border-0 border-gray-50">
                     <span class="font-medium text-slate-700">${name}</span>
                     <span class="bg-gray-100 text-gray-600 text-xs px-2 py-1 rounded-full font-mono">
-                        ${isSynergy ? score.toFixed(2) : Math.round(score).toLocaleString()}
+                        ${isSynergy ? score.toFixed(2) : (Math.round(score*1e6)/1e6).toLocaleString()}
                     </span>
                 </li>
             `).join('');
