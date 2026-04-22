@@ -16,8 +16,8 @@
 
     <div class="max-w-6xl mx-auto">
         <header class="mb-8 text-center">
-            <h1 class="text-4xl font-bold text-slate-800">Pokémon Team Synergy Lab</h1>
-            <p class="text-slate-600">Select your core to find the best teammates.</p>
+            <h1 class="text-4xl font-bold text-slate-800">Pokémon Team Maker</h1>
+            <p class="text-slate-600">Find fun combos, popular or otherwise.</p>
         </header>
 
         <div class="grid grid-cols-1 lg:grid-cols-4 gap-8">
@@ -28,8 +28,8 @@
                     <div class="mb-4">
                         <label class="block text-sm font-semibold text-gray-600 mb-1">Select Format/Data:</label>
                         <select id="fileSelector" class="w-full p-2 border rounded bg-white shadow-sm focus:ring-2 focus:ring-blue-400 outline-none">
+                            <option value="processed_data/2026-03-gen9championsvgc2026regma-0.json">Reg G (Blind)</option>  
                             <option value="processed_data/2026-03-gen9championsvgc2026regmabo3-0.json">Reg G (Bo3)</option>
-                            <option value="processed_data/2026-03-gen9championsvgc2026regma-0.json">Reg G (Ladder)</option>  
                         </select>
                     </div>
 
@@ -52,7 +52,8 @@
                                 <tr class="border-b text-sm text-gray-600 uppercase tracking-wider">
                                     <th class="p-4 sort-header" onclick="setSort('name')">Pokémon <span id="sort-name"></span></th>
                                     <th class="p-4 sort-header" onclick="setSort('popular')">Popularity Score <span id="sort-popular"></span></th>
-                                    <th class="p-4 sort-header" onclick="setSort('synergy')">Synergy Score <span id="sort-synergy"></span></th>
+                                    <th class="p-4 sort-header" onclick="setSort('synergy')">Affinity Score <span id="sort-synergy"></span></th>
+                                    <th class="p-4 sort-header" onclick="setSort('hybrid')">Hybrid Score <span id="sort-hybrid"></span></th>
                                 </tr>
                             </thead>
                             <tbody id="recommendationTable" class="divide-y text-slate-700">
@@ -71,7 +72,7 @@
         let pokeData = { pokemon: {}, total_usage: {} };
         let selectedPokemon = [];
         let recommendations = []; // Store calculated results for sorting
-        let currentSort = { column: 'synergy', direction: 'desc' };
+        let currentSort = { column: 'hybrid', direction: 'desc' };
         let isSearchInitialized = false;
 
         const fileSelector = document.getElementById('fileSelector');
@@ -144,7 +145,7 @@
                 
                 for (let [candidate, count] of Object.entries(teammates)) {
                     if (selectedPokemon.includes(candidate)) continue;
-                    if (!scoresMap[candidate]) scoresMap[candidate] = { name: candidate, popular: 0.5, synergy: 0 };
+                    if (!scoresMap[candidate]) scoresMap[candidate] = { name: candidate, popular: 0.5, synergy: 0, hybrid: 0 };
 
                     const usage = pokeData.total_usage[candidate] || 1;
                     
@@ -154,6 +155,9 @@
 
                     // Popularity Logic
                     scoresMap[candidate].popular *= count / (member_usage) * 10;
+
+                    // Hybrid
+                    scoresMap[candidate].hybrid += count / ((usage * member_usage) ** .5);
                 }
             });
 
@@ -163,7 +167,8 @@
                 return {
                     ...item,
                     popular: pop,
-                    synergy: item.synergy
+                    synergy: item.synergy,
+                    hybrid: item.hybrid,
                 };
             });
 
@@ -185,7 +190,7 @@
             const emptyState = document.getElementById('emptyState');
             
             // Update Sort Icons
-            ['name', 'popular', 'synergy'].forEach(id => {
+            ['name', 'popular', 'synergy', 'hybrid'].forEach(id => {
                 const el = document.getElementById(`sort-${id}`);
                 el.innerHTML = currentSort.column === id ? (currentSort.direction === 'asc' ? '▴' : '▾') : '';
             });
@@ -212,6 +217,7 @@
                     <td class="p-4 font-bold text-slate-800">${item.name}</td>
                     <td class="p-4 font-mono text-blue-600">${item.popular.toLocaleString(undefined, {maximumFractionDigits: 2})}</td>
                     <td class="p-4 font-mono text-purple-600">${item.synergy.toFixed(2)}</td>
+                    <td class="p-4 font-mono text-purple-600">${item.hybrid.toFixed(2)}</td>
                 </tr>
             `).join('');
         }
