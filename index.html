@@ -10,20 +10,48 @@
         .sort-header { cursor: pointer; user-select: none; transition: background 0.2s; }
         th { position: sticky; top: 0; background: white; z-index: 10; }
         .progress-bar { transition: width 0.5s ease-in-out, background-color 0.5s ease; }
+
+        .sort-header:hover { color: #f97316; }
+        th { backdrop-filter: blur(8px); background: rgba(255, 255, 255, 0.9) !important; }
+
+        /* Makes numbers line up perfectly in columns */
+        .font-mono { font-variant-numeric: tabular-nums; }
+
+        /* Smooth entry animation for rows */
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        .row-animate { animation: fadeIn 0.3s ease-out forwards; }
+
+        .heat-glow {
+            box-shadow: 0 0 20px rgba(255, 69, 0, 0.4);
+            border: 1px solid rgba(255, 100, 0, 0.3);
+            animation: pulse-glow 2s infinite alternate;
+        }
+        @keyframes pulse-glow {
+            from { box-shadow: 0 0 10px rgba(255, 69, 0, 0.2); }
+            to { box-shadow: 0 0 25px rgba(255, 69, 0, 0.5); }
+        }
     </style>
 </head>
 <body class="bg-gray-50 min-h-screen p-4 md:p-8 font-sans">
 
     <div class="max-w-6xl mx-auto">
         <header class="mb-8 flex items-center justify-between bg-white p-6 rounded-xl shadow-sm border border-gray-100">
-            <div class="flex items-center gap-4">
-                <div class="bg-orange-100 p-3 rounded-full text-3xl">🌶️</div>
-                <div>
-                    <h1 class="text-3xl font-black text-slate-900 uppercase tracking-tight">Hot Pot</h1>
-                    <p class="text-slate-500 font-medium">Cooking up Pokémon teams.</p>
+                <div class="flex items-center gap-4">
+                    <div class="relative">
+                        <div class="bg-orange-100 p-3 rounded-full text-3xl rotate-3">🌶️</div>
+                    </div>
+                    <div>
+                        <h1 class="text-3xl font-black text-slate-900 uppercase tracking-tighter leading-none">Hot Pot</h1>
+                        <div class="flex items-center gap-2">
+                            <span class="text-[10px] bg-slate-900 text-white px-1.5 py-0.5 rounded font-bold tracking-widest uppercase">v1.0</span>
+                            <p class="text-slate-500 text-sm font-medium">Cooking up Pokémon teams.</p>
+                        </div>
+                    </div>
                 </div>
-            </div>
-            <select id="fileSelector" class="p-2 border rounded-lg bg-gray-50 font-semibold text-slate-700 outline-none focus:ring-2 focus:ring-orange-400">
+                <select id="fileSelector" class="p-2 border rounded-lg bg-gray-50 font-semibold text-slate-700 outline-none focus:ring-2 focus:ring-orange-400">
                 <option value="processed_data/2026-03-gen9championsvgc2026regma-0.json">Reg G (Ladder)</option>  
                 <option value="processed_data/2026-03-gen9championsvgc2026regmabo3-0.json">Reg G (Bo3)</option>
             </select>
@@ -213,6 +241,13 @@
             const bar = document.getElementById('chalkBar');
             bar.className = `progress-bar h-2 rounded-full ${barClass}`;
             bar.style.width = `${Math.min(avgChalk * 2.5, 100)}%`;
+
+            if (avgChalk < 10) { 
+                // If the team is "Spicy" (low usage), add the glow
+                card.classList.add('heat-glow');
+            } else {
+                card.classList.remove('heat-glow');
+            }
         }
 
         function resetStats() {
