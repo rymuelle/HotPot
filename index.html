@@ -138,11 +138,17 @@
             }
 
             let scoresMap = {};
+            // Chalk measures how often people pick these pokemon
+            let chalk = 0;
+            let total_entries = 0;
+            for (let key in pokeData.total_usage) {
+                total_entries += pokeData.total_usage[key];
+            }
 
             selectedPokemon.forEach(member => {
                 const teammates = pokeData.pokemon[member]?.teammates || {};
                 const member_usage = pokeData.total_usage[member];
-                
+                chalk += member_usage/total_entries;
                 for (let [candidate, count] of Object.entries(teammates)) {
                     if (selectedPokemon.includes(candidate)) continue;
                     if (!scoresMap[candidate]) scoresMap[candidate] = { name: candidate, popular: 0.5, affinity: 0, hybrid: 0 };
