@@ -22,6 +22,14 @@
             <div class="md:col-span-1">
                 <div class="card p-6">
                     <h2 class="text-xl font-bold mb-4">Your Team</h2>
+                    <div class="mb-4">
+                        <label class="block text-sm font-semibold text-gray-600 mb-1">Select Format/Data:</label>
+                        <select id="fileSelector" class="w-full p-2 border rounded bg-white shadow-sm focus:ring-2 focus:ring-blue-400 outline-none">
+                            <option value="processed_data/2026-03-gen9championsvgc2026regmabo3-0.json">Reg G (Bo3, May 2024)</option>
+                            <option value="processed_data/2026-03-gen9championsvgc2026regma-0.json">Reg G (May 2024)</option>  
+                        </select>
+                    </div>
+
                     <input type="text" id="pokeSearch" placeholder="Search Pokémon..." class="w-full p-2 border rounded mb-4">
                     <div id="selectedList" class="space-y-2 mb-4">
                         </div>
@@ -51,22 +59,45 @@
     <script>
         let pokeData = { pokemon: {}, total_usage: {} };
         let selectedPokemon = [];
+        let isSearchInitialized = false; // Track if we've attached listeners yet
 
-        // 1. Load Data with Error Catching
-        fetch('pokemon_data.json')
-            .then(res => {
-                if (!res.ok) throw new Error("Could not find pokemon_data.json. Make sure it is in the same folder!");
-                return res.json();
-            })
-            .then(data => {
-                pokeData = data;
-                console.log("Data Loaded Successfully!", Object.keys(pokeData.pokemon).length, "pokemon found.");
-                setupSearch();
-            })
-            .catch(err => {
-                alert(err.message);
-                console.error(err);
-            });
+        const fileSelector = document.getElementById('fileSelector');
+
+        function loadData(fileName) {
+            console.log(`Loading data from: ${fileName}...`);
+            
+            fetch(fileName)
+                .then(res => {
+                    if (!res.ok) throw new Error(`Could not find ${fileName}.`);
+                    return res.json();
+                })
+                .then(data => {
+                    pokeData = data;
+                    console.log("Data Loaded Successfully!");
+
+                    // Initialize search listeners ONLY the first time we get data
+                    if (!isSearchInitialized) {
+                        setupSearch();
+                        isSearchInitialized = true;
+                    }
+                    
+                    // 2. Refresh results if a team is already selected
+                    if (selectedPokemon.length > 0) {
+                        calculateRecommendations();
+                    }
+                })
+                .catch(err => {
+                    alert(err.message);
+                });
+        }
+
+        // Listener for dropdown changes
+        fileSelector.addEventListener('change', (e) => {
+            loadData(e.target.value);
+        });
+
+        // Initial trigger
+        loadData(fileSelector.value);
 
         function setupSearch() {
             const input = document.getElementById('pokeSearch');
@@ -90,7 +121,7 @@
                 }
             });
 
-            // 2. Add "Enter" key support
+            // Add "Enter" key support
             input.addEventListener('keypress', (e) => {
                 if (e.key === 'Enter') {
                     const val = input.value.trim();
