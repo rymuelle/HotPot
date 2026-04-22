@@ -16,8 +16,8 @@
 
     <div class="max-w-6xl mx-auto">
         <header class="mb-8 text-center">
-            <h1 class="text-4xl font-bold text-slate-800">Pokémon Team Maker</h1>
-            <p class="text-slate-600">Find fun combos, popular or otherwise.</p>
+            <h1 class="text-4xl font-bold text-slate-800">Pokémon Matcher</h1>
+            <p class="text-slate-600">Find fun combos and good fits!</p>
         </header>
 
         <div class="grid grid-cols-1 lg:grid-cols-4 gap-8">
@@ -43,7 +43,7 @@
                 <div class="card overflow-hidden">
                     <div class="p-4 border-b bg-white">
                         <h2 class="text-xl font-bold text-slate-800">Partner Recommendations</h2>
-                        <p class="text-xs text-gray-500">Click headers to sort. Synergy finds niche fits; Popularity finds standard staples.</p>
+                        <p class="text-xs text-gray-500">Click headers to sort. "Popularity" recommends the most common picks. Affinity finds pokemon that usually match up with your picks.</p>
                     </div>
                     
                     <div class="overflow-x-auto max-h-[600px]">
@@ -52,7 +52,7 @@
                                 <tr class="border-b text-sm text-gray-600 uppercase tracking-wider">
                                     <th class="p-4 sort-header" onclick="setSort('name')">Pokémon <span id="sort-name"></span></th>
                                     <th class="p-4 sort-header" onclick="setSort('popular')">Popularity Score <span id="sort-popular"></span></th>
-                                    <th class="p-4 sort-header" onclick="setSort('synergy')">Affinity Score <span id="sort-synergy"></span></th>
+                                    <th class="p-4 sort-header" onclick="setSort('affinity')">Affinity Score <span id="sort-affinity"></span></th>
                                     <th class="p-4 sort-header" onclick="setSort('hybrid')">Hybrid Score <span id="sort-hybrid"></span></th>
                                 </tr>
                             </thead>
@@ -145,13 +145,13 @@
                 
                 for (let [candidate, count] of Object.entries(teammates)) {
                     if (selectedPokemon.includes(candidate)) continue;
-                    if (!scoresMap[candidate]) scoresMap[candidate] = { name: candidate, popular: 0.5, synergy: 0, hybrid: 0 };
+                    if (!scoresMap[candidate]) scoresMap[candidate] = { name: candidate, popular: 0.5, affinity: 0, hybrid: 0 };
 
                     const usage = pokeData.total_usage[candidate] || 1;
                     
-                    // Synergy Logic
+                    // affinity Logic
                     const synWeight = (count - count ** 0.5 * 0.1) / (usage);
-                    scoresMap[candidate].synergy += synWeight;
+                    scoresMap[candidate].affinity += synWeight;
 
                     // Popularity Logic
                     scoresMap[candidate].popular *= count / (member_usage) * 10;
@@ -167,7 +167,7 @@
                 return {
                     ...item,
                     popular: pop,
-                    synergy: item.synergy,
+                    affinity: item.affinity,
                     hybrid: item.hybrid,
                 };
             });
@@ -190,7 +190,7 @@
             const emptyState = document.getElementById('emptyState');
             
             // Update Sort Icons
-            ['name', 'popular', 'synergy', 'hybrid'].forEach(id => {
+            ['name', 'popular', 'affinity', 'hybrid'].forEach(id => {
                 const el = document.getElementById(`sort-${id}`);
                 el.innerHTML = currentSort.column === id ? (currentSort.direction === 'asc' ? '▴' : '▾') : '';
             });
@@ -216,7 +216,7 @@
                 <tr class="hover:bg-gray-50 transition-colors">
                     <td class="p-4 font-bold text-slate-800">${item.name}</td>
                     <td class="p-4 font-mono text-blue-600">${item.popular.toLocaleString(undefined, {maximumFractionDigits: 2})}</td>
-                    <td class="p-4 font-mono text-purple-600">${item.synergy.toFixed(2)}</td>
+                    <td class="p-4 font-mono text-purple-600">${item.affinity.toFixed(2)}</td>
                     <td class="p-4 font-mono text-purple-600">${item.hybrid.toFixed(2)}</td>
                 </tr>
             `).join('');
