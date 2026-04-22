@@ -204,13 +204,42 @@
             document.getElementById('chalkScore').innerText = `${avgChalk.toFixed(1)}%`;
             document.getElementById('chalkBar').style.width = `${Math.min(avgChalk * 2, 100)}%`; // Scaled for visibility
             
+            // Inside calculateRecommendations()...
+
             let vibe = "Certified Scovillain";
-            if (avgChalk > 30) vibe = "Spicy as chalk";
-            else if (avgChalk > 25) vibe = "Poblano";
-            else if (avgChalk > 20) vibe = "Jalapeño";
-            else if (avgChalk > 15) vibe = "Serrano";
-            else if (avgChalk > 10) vibe = "Habenero";
-            else if (avgChalk > 5) vibe = "Carolina Reaper";
+            let bgClass = "bg-black";
+            let textClass = "text-red-500";
+
+            if (avgChalk > 30) {
+                vibe = "Spicy as chalk";
+                bgClass = "bg-slate-200";
+                textClass = "text-slate-500";
+            } else if (avgChalk > 25) {
+                vibe = "Poblano";
+                bgClass = "bg-green-100";
+                textClass = "text-green-700";
+            } else if (avgChalk > 20) {
+                vibe = "Jalapeño";
+                bgClass = "bg-green-600";
+                textClass = "text-yellow-200";
+            } else if (avgChalk > 15) {
+                vibe = "Serrano";
+                bgClass = "bg-orange-500";
+                textClass = "text-white";
+            } else if (avgChalk > 10) {
+                vibe = "Habanero";
+                bgClass = "bg-red-600";
+                textClass = "text-yellow-400";
+            } else if (avgChalk > 5) {
+                vibe = "Carolina Reaper";
+                bgClass = "bg-red-900";
+                textClass = "text-orange-500";
+            }
+
+            // Apply the styles
+            const card = document.getElementById('teamStatsCard');
+            card.className = `card p-6 transition-all duration-700 ${bgClass}`;
+            document.getElementById('vibeCheck').className = `font-extrabold italic text-xl flex items-center gap-2 ${textClass}`;  
             
             document.getElementById('vibeCheck').innerText = vibe;
 
